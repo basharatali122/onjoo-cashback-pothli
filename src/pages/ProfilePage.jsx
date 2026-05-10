@@ -679,7 +679,6 @@
 
 
 
-
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -954,11 +953,11 @@ function AccountsTable({ profile }) {
     if (genStart > genEnd) { setMsg('⚠️ Start must be ≤ End', 'error'); return; }
     setGen(true); setMsg(`Generating ${genEnd - genStart + 1} accounts...`);
     try {
-      const r = await accountsAPI.generate(profile, { 
-        username: genUser.trim(), 
-        startRange: genStart, 
-        endRange: genEnd, 
-        password: genPass.trim() || 'password123' 
+      const r = await accountsAPI.generate(profile, {
+        username:   genUser.trim(),
+        startRange: genStart,
+        endRange:   genEnd,
+        password:   genPass.trim() || 'password123',
       });
       setMsg(`✅ Generated ${r.data.generated || 0} | Added ${r.data.added} | Skipped ${r.data.duplicates}`, 'success');
       setShowGen(false); await load();
@@ -971,6 +970,11 @@ function AccountsTable({ profile }) {
     try { await accountsAPI.clearAll(profile); setMsg('✅ All cleared', 'success'); await load(); }
     catch { setMsg('❌ Clear failed', 'error'); }
   };
+
+  // FIX: plain template literal — no padStart, so Rx1..Rx1000 not Rx001..Rx1000
+  const previewName = genUser
+    ? `${genUser}${genStart} … ${genUser}${genEnd}`
+    : '';
 
   return (
     <div>
@@ -1003,7 +1007,7 @@ function AccountsTable({ profile }) {
         </div>
       )}
 
-      {/* Generate panel - FIXED: removed padStart from preview */}
+      {/* Generate panel */}
       {showGen && (
         <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 6, padding: 12, marginBottom: 12 }}>
           <div className="form-label" style={{ marginBottom: 8 }}>Generate accounts</div>
@@ -1025,10 +1029,11 @@ function AccountsTable({ profile }) {
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>Password</div>
             <input className="input" value={genPass} onChange={e => setGenPass(e.target.value)} placeholder="password123" />
           </div>
-          {/* FIXED: Removed padStart from preview */}
-          {genUser && (
+          {/* FIX: previewName uses plain numbers — no padStart */}
+          {previewName && (
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>
-              Preview: {genUser}{genStart} … {genUser}{genEnd} ({genEnd - genStart + 1} accounts)
+              Preview: <span style={{ color: 'var(--accent)' }}>{previewName}</span>
+              <span style={{ marginLeft: 8 }}>({(genEnd - genStart + 1).toLocaleString()} accounts)</span>
             </div>
           )}
           <button className="btn btn-primary btn-sm" onClick={handleGenerate} disabled={generating}>
@@ -1130,7 +1135,6 @@ export default function ProfilePage() {
 
   const handleModeChange = (mode) => {
     if (botStatus.running) return;
-    // Auto-switch if locked for this game
     if (mode === 'cashback' && !game.supportsCashback) return;
     if (mode === 'pothli'   && !game.supportsPothli)   return;
     setClaimMode(mode);
